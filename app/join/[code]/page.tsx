@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Peer, { DataConnection } from 'peerjs';
 import { Quiz, QuizQuestion } from '@/types/quiz';
@@ -18,10 +18,13 @@ export default function JoinPage() {
     const [connection, setConnection] = useState<DataConnection | null>(null);
     const [quiz, setQuiz] = useState<Quiz | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [selectedAnswer, setSelectedAnswer] = useState<string | number | null>(null);
+    const [selectedAnswer, setSelectedAnswer] = useState<string | number | null>(null); // Kept this one, removed duplicate
     const [hasAnswered, setHasAnswered] = useState(false);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [isTimeUp, setIsTimeUp] = useState(false);
+    const [isCountingDown, setIsCountingDown] = useState(false); // Added
+    const [countdownValue, setCountdownValue] = useState(7); // Added
+    const countdownTimerRef = useRef<NodeJS.Timeout | null>(null); // Added
     const [error, setError] = useState('');
 
     const handleJoin = () => {
@@ -95,6 +98,12 @@ export default function JoinPage() {
 
             case 'QUIZ_STARTED':
                 setStep('quiz');
+                setIsCountingDown(false); // Modified
+                break;
+
+            case 'QUIZ_STARTING': // Added
+                setIsCountingDown(true);
+                setCountdownValue(data.payload.countdown || 7);
                 break;
 
             case 'TIME_UP':
@@ -148,6 +157,19 @@ export default function JoinPage() {
             if (timer) clearTimeout(timer);
         };
     }, [step, timeLeft, isTimeUp]);
+
+    // Countdown logic
+    useEffect(() => {
+        if (isCountingDown && countdownValue > 0) {
+            countdownTimerRef.current = setTimeout(() => {
+                setCountdownValue(prev => prev - 1);
+            }, 1000);
+        }
+
+        return () => {
+            if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current);
+        };
+    }, [isCountingDown, countdownValue]);
 
     useEffect(() => {
         return () => {
@@ -238,6 +260,20 @@ export default function JoinPage() {
                         <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                     </div>
                 </div>
+
+                {/* Countdown Overlay */}
+                {isCountingDown && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/20 backdrop-blur-xl transition-all duration-500 animate-in fade-in">
+                        <div className="text-center">
+                            <div className="text-[12rem] font-black text-indigo-600 animate-bounce tracking-tighter tabular-nums drop-shadow-2xl">
+                                {countdownValue}
+                            </div>
+                            <p className="text-2xl font-medium text-indigo-900/40 tracking-widest uppercase -mt-4">
+                                Get ready...
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }

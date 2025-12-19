@@ -20,7 +20,10 @@ export default function HostSessionPage() {
     });
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [showRanking, setShowRanking] = useState(false);
+    const [isCountingDown, setIsCountingDown] = useState(false);
+    const [countdownValue, setCountdownValue] = useState(7);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
     const router = useRouter();
 
     // Initialize PeerJS and load quiz
@@ -164,12 +167,33 @@ export default function HostSessionPage() {
     };
 
     const handleStartQuiz = () => {
-        setSessionState(prev => ({ ...prev, hasStarted: true }));
+        setIsCountingDown(true);
+        setCountdownValue(7);
         broadcastToAll({
-            type: 'QUIZ_STARTED',
-            payload: {}
+            type: 'QUIZ_STARTING',
+            payload: { countdown: 7 }
         });
     };
+
+    // Countdown logic
+    useEffect(() => {
+        if (isCountingDown && countdownValue > 0) {
+            countdownTimerRef.current = setTimeout(() => {
+                setCountdownValue(prev => prev - 1);
+            }, 1000);
+        } else if (isCountingDown && countdownValue === 0) {
+            setIsCountingDown(false);
+            setSessionState(prev => ({ ...prev, hasStarted: true }));
+            broadcastToAll({
+                type: 'QUIZ_STARTED',
+                payload: {}
+            });
+        }
+
+        return () => {
+            if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current);
+        };
+    }, [isCountingDown, countdownValue]);
 
     const handleNextQuestion = () => {
         if (!quiz) return;
@@ -437,6 +461,20 @@ export default function HostSessionPage() {
                         </ul>
                     </div>
                 </div>
+
+                {/* Countdown Overlay */}
+                {isCountingDown && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/20 backdrop-blur-xl transition-all duration-500 animate-in fade-in">
+                        <div className="text-center">
+                            <div className="text-[12rem] font-black text-indigo-600 animate-bounce tracking-tighter tabular-nums drop-shadow-2xl">
+                                {countdownValue}
+                            </div>
+                            <p className="text-2xl font-medium text-indigo-900/40 tracking-widest uppercase -mt-4">
+                                Prepare settings...
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
