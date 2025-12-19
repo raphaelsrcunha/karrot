@@ -7,53 +7,53 @@ export default function Home() {
   const [roomCode, setRoomCode] = useState('');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-8">
-        {/* Logo */}
-        <div className="text-center">
-          <h1 className="text-6xl font-bold text-purple-600 mb-2">🥕</h1>
-          <h2 className="text-4xl font-bold text-gray-900">Karrot</h2>
-          <p className="mt-2 text-gray-600">Interactive quizzes made simple</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-6">
+      <div className="max-w-lg w-full space-y-12">
+        {/* Logo & Title */}
+        <div className="text-center space-y-3">
+          <div className="inline-block text-6xl mb-4">🥕</div>
+          <h1 className="text-5xl font-semibold text-gray-900 tracking-tight">Karrot</h1>
+          <p className="text-lg text-gray-500 font-light">Interactive presentations made simple</p>
         </div>
 
-        {/* Join Room */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
-          <div>
-            <label htmlFor="roomCode" className="block text-sm font-medium text-gray-700 mb-2">
-              Enter room code
+        {/* Join Room Card */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm border border-gray-100 p-10 space-y-6">
+          <div className="space-y-3">
+            <label htmlFor="roomCode" className="block text-sm font-medium text-gray-600 tracking-wide">
+              ENTER CODE
             </label>
             <input
               id="roomCode"
               type="text"
               value={roomCode}
               onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-              placeholder="e.g. ABC123"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-center text-2xl font-bold tracking-wider uppercase"
+              placeholder="000 000"
+              className="w-full px-6 py-4 bg-gray-50 border-0 rounded-2xl text-center text-3xl font-light tracking-[0.5em] uppercase text-gray-900 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition-all"
               maxLength={6}
             />
           </div>
           <Link
             href={`/join/${roomCode}`}
-            className={`block w-full py-3 px-4 rounded-lg font-semibold text-white text-center transition-all ${roomCode.length === 6
-                ? 'bg-purple-600 hover:bg-purple-700 hover:shadow-lg'
-                : 'bg-gray-300 cursor-not-allowed'
+            className={`block w-full py-4 px-6 rounded-2xl font-medium text-center transition-all ${roomCode.length === 6
+                ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm hover:shadow-md'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
             onClick={(e) => {
               if (roomCode.length !== 6) e.preventDefault();
             }}
           >
-            Join Quiz
+            Join
           </Link>
         </div>
 
         {/* Create Quiz */}
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">Want to host a quiz?</p>
+        <div className="text-center space-y-4">
+          <p className="text-sm text-gray-500 font-light">Want to create a presentation?</p>
           <Link
             href="/host"
-            className="inline-block px-6 py-3 bg-white border-2 border-purple-600 text-purple-600 font-semibold rounded-lg hover:bg-purple-50 transition-all"
+            className="inline-flex items-center px-8 py-3 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-medium rounded-full transition-all shadow-sm hover:shadow"
           >
-            Create Quiz
+            Create presentation
           </Link>
         </div>
       </div>

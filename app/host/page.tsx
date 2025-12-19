@@ -76,21 +76,21 @@ export default function HostPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-8">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-8">
             <div className="max-w-2xl mx-auto">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-2">Create Your Quiz</h1>
-                    <p className="text-gray-600">Upload a JSON file or download a template to get started</p>
+                <div className="mb-10">
+                    <h1 className="text-4xl font-semibold text-gray-900 mb-3">Create presentation</h1>
+                    <p className="text-lg text-gray-500 font-light">Upload a JSON file or download a template to get started</p>
                 </div>
 
                 {/* Upload Section */}
-                <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+                <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm border border-gray-100 p-10 mb-6">
                     <div className="space-y-6">
                         {/* File Upload */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-3">
-                                Upload Quiz JSON
+                            <label className="block text-xs font-medium text-gray-600 tracking-wide mb-4">
+                                UPLOAD QUIZ JSON
                             </label>
                             <div className="flex gap-3">
                                 <input
@@ -102,39 +102,39 @@ export default function HostPage() {
                                 />
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="flex-1 px-6 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-gray-700 font-medium"
+                                    className="flex-1 px-6 py-4 border-2 border-dashed border-gray-300 rounded-2xl hover:border-indigo-400 hover:bg-indigo-50/50 transition-all text-gray-600 font-medium"
                                 >
-                                    📁 Choose File
+                                    📁 Choose file
                                 </button>
                                 <button
                                     onClick={handleDownloadTemplate}
-                                    className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-gray-700 transition-all"
+                                    className="px-6 py-4 bg-gray-50 hover:bg-gray-100 rounded-2xl font-medium text-gray-700 transition-all border border-gray-200"
                                 >
-                                    ⬇️ Download Template
+                                    ⬇️ Template
                                 </button>
                             </div>
                         </div>
 
                         {/* Error Message */}
                         {error && (
-                            <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                            <div className="p-4 bg-red-50 border border-red-100 rounded-2xl text-red-600 text-sm">
                                 {error}
                             </div>
                         )}
 
                         {/* Quiz Preview */}
                         {quiz && (
-                            <div className="p-6 bg-purple-50 rounded-lg border border-purple-200">
-                                <h3 className="font-bold text-lg text-gray-900 mb-2">{quiz.title}</h3>
+                            <div className="p-6 bg-indigo-50 rounded-2xl border border-indigo-100">
+                                <h3 className="font-semibold text-lg text-gray-900 mb-2">{quiz.title}</h3>
                                 {quiz.description && (
-                                    <p className="text-gray-600 mb-4">{quiz.description}</p>
+                                    <p className="text-gray-600 mb-4 text-sm">{quiz.description}</p>
                                 )}
                                 <div className="flex items-center gap-4 text-sm text-gray-700">
                                     <span className="font-medium">
                                         📝 {quiz.questions.length} question{quiz.questions.length !== 1 ? 's' : ''}
                                     </span>
-                                    <span>
-                                        Types: {[...new Set(quiz.questions.map(q => q.type))].join(', ')}
+                                    <span className="text-gray-500">
+                                        {[...new Set(quiz.questions.map(q => q.type))].join(', ')}
                                     </span>
                                 </div>
                             </div>
@@ -144,19 +144,19 @@ export default function HostPage() {
                         <button
                             onClick={handleStartQuiz}
                             disabled={!quiz}
-                            className={`w-full py-4 rounded-lg font-bold text-white text-lg transition-all ${quiz
-                                    ? 'bg-purple-600 hover:bg-purple-700 hover:shadow-lg'
-                                    : 'bg-gray-300 cursor-not-allowed'
+                            className={`w-full py-5 rounded-2xl font-medium text-lg transition-all ${quiz
+                                    ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm hover:shadow-md'
+                                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 }`}
                         >
-                            Start Quiz Session
+                            Start presentation
                         </button>
                     </div>
                 </div>
 
                 {/* Info */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                    <h4 className="font-semibold text-blue-900 mb-2">💡 How it works</h4>
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6">
+                    <h4 className="font-semibold text-blue-900 mb-3 text-sm tracking-wide">💡 HOW IT WORKS</h4>
                     <ul className="space-y-2 text-sm text-blue-800">
                         <li>• Upload a JSON file with your quiz questions</li>
                         <li>• Share the generated room code with participants</li>

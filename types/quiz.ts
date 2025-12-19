@@ -25,6 +25,7 @@ export interface SessionState {
   quizId: string;
   currentQuestionIndex: number;
   isActive: boolean;
+  hasStarted: boolean;
   participants: Participant[];
   answers: ParticipantAnswer[];
 }
@@ -32,5 +33,6 @@ export interface SessionState {
 export interface Participant {
   id: string;
   name: string;
+  avatar: string;
   connected: boolean;
 }
