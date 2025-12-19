@@ -1,36 +1,154 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Karrot 🥕
+
+Interactive quiz platform built with Next.js and WebRTC P2P - no backend required!
+
+## Features
+
+✨ **Real-time Interaction** - Participants see questions and submit answers instantly  
+🔒 **No Backend** - Uses WebRTC peer-to-peer connections  
+📱 **Responsive Design** - Works on desktop, tablet, and mobile  
+🎨 **Minimalist UI** - Inspired by Mentimeter  
+📊 **Live Results** - See responses as they come in  
+💾 **JSON-based** - Easy quiz creation and portability  
+⬇️ **Export Results** - Download session data as JSON  
+
+## Question Types
+
+- **Multiple Choice** - Traditional quiz questions with options
+- **Word Cloud** - Collect single-word responses
+- **Open Ended** - Free-form text responses
 
 ## Getting Started
 
-First, run the development server:
+### Installation
+
+```bash
+npm install
+```
+
+### Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How to Use
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### For Presenters (Hosts)
 
-## Learn More
+1. Click **"Create Quiz"** on the home page
+2. Upload a JSON quiz file or download the template
+3. Click **"Start Quiz Session"**
+4. Share the generated **6-digit room code** with participants
+5. Control quiz flow with Next/Previous buttons
+6. View real-time responses and statistics
+7. Download results when finished
 
-To learn more about Next.js, take a look at the following resources:
+### For Participants
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Enter the **room code** on the home page
+2. Enter your name
+3. Wait for the host to start
+4. Answer questions as they appear
+5. See confirmation when your answer is submitted
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Quiz JSON Format
 
-## Deploy on Vercel
+Create a JSON file with the following structure:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```json
+{
+  "title": "My Quiz",
+  "description": "Optional description",
+  "questions": [
+    {
+      "id": "unique-id",
+      "type": "multiple-choice",
+      "question": "Your question here?",
+      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+      "correctAnswer": 0,
+      "timeLimit": 30
+    },
+    {
+      "id": "unique-id-2",
+      "type": "word-cloud",
+      "question": "Describe in one word",
+      "timeLimit": 20
+    },
+    {
+      "id": "unique-id-3",
+      "type": "open-ended",
+      "question": "What do you think?",
+      "timeLimit": 45
+    }
+  ]
+}
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Field Descriptions
+
+- `title` (required): Quiz title
+- `description` (optional): Brief description
+- `questions` (required): Array of question objects
+  - `id` (required): Unique identifier
+  - `type` (required): `"multiple-choice"`, `"word-cloud"`, or `"open-ended"`
+  - `question` (required): The question text
+  - `options` (required for multiple-choice): Array of answer options
+  - `correctAnswer` (optional): Index of correct answer (for multiple-choice)
+  - `timeLimit` (optional): Time limit in seconds
+
+## Example Quiz
+
+See [example-quiz.json](./example-quiz.json) for a complete example.
+
+## Tech Stack
+
+- **Next.js 16** - React framework with App Router
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **PeerJS** - WebRTC abstraction for P2P connections
+- **Biome** - Linting and formatting
+
+## Architecture
+
+Karrot uses WebRTC peer-to-peer connections:
+
+1. **Host** creates a PeerJS instance with the room code as ID
+2. **Participants** connect directly to the host's peer ID
+3. **No central server** needed for data transmission
+4. All quiz data and answers flow directly between peers
+
+### Limitations
+
+- Works best with **10-15 participants** (WebRTC P2P limitation)
+- Host must keep their browser open during the session
+- Participants need modern browsers with WebRTC support
+
+## Deployment
+
+Deploy to Netlify, Vercel, or any static hosting platform:
+
+```bash
+npm run build
+```
+
+The app is fully client-side and requires no server configuration.
+
+## Future Enhancements
+
+- [ ] Timer display for participants
+- [ ] Leaderboard for competitive quizzes
+- [ ] More question types (ranking, rating scales)
+- [ ] Quiz templates library
+- [ ] Session recording/replay
+- [ ] Mobile app
+
+## License
+
+MIT
+
+---
+
+Built with ❤️ using Next.js and WebRTC

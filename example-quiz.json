@@ -1,0 +1,56 @@
+{
+  "title": "Karrot Demo Quiz",
+  "description": "A sample quiz demonstrating all question types",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "multiple-choice",
+      "question": "What makes Karrot different from other quiz platforms?",
+      "options": [
+        "It's completely free",
+        "Uses WebRTC P2P (no backend needed)",
+        "Has the best design",
+        "All of the above"
+      ],
+      "correctAnswer": 3,
+      "timeLimit": 30
+    },
+    {
+      "id": "q2",
+      "type": "word-cloud",
+      "question": "Describe this quiz in ONE word",
+      "timeLimit": 20
+    },
+    {
+      "id": "q3",
+      "type": "multiple-choice",
+      "question": "How many participants can join a Karrot quiz?",
+      "options": [
+        "Up to 10",
+        "Up to 50",
+        "Unlimited",
+        "Only 5"
+      ],
+      "correctAnswer": 0,
+      "timeLimit": 25
+    },
+    {
+      "id": "q4",
+      "type": "open-ended",
+      "question": "What feature would you like to see added to Karrot?",
+      "timeLimit": 45
+    },
+    {
+      "id": "q5",
+      "type": "multiple-choice",
+      "question": "Would you use Karrot for your presentations?",
+      "options": [
+        "Absolutely!",
+        "Maybe",
+        "Probably not",
+        "Need more features first"
+      ],
+      "timeLimit": 20
+    }
+  ]
+}
