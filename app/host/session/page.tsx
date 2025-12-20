@@ -425,22 +425,6 @@ export default function HostSessionPage() {
                         </button>
                     </div>
 
-                    <style jsx>{`
-                        @keyframes slideIn {
-                            from { width: 0; opacity: 0; }
-                            to { opacity: 1; }
-                        }
-                        .custom-scrollbar::-webkit-scrollbar {
-                            width: 6px;
-                        }
-                        .custom-scrollbar::-webkit-scrollbar-track {
-                            background: transparent;
-                        }
-                        .custom-scrollbar::-webkit-scrollbar-thumb {
-                            background: #e2e8f0;
-                            border-radius: 10px;
-                        }
-                    `}</style>
                 </div>
             </div>
         );

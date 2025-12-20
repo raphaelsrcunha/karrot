@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Quiz, QuizQuestion } from '@/types/quiz';
+import { GRAMMAR_SAMPLE } from './samples';
 
 const DEFAULT_QUESTION: QuizQuestion = {
     id: 'temp-1',
@@ -139,6 +140,20 @@ export default function HostPage() {
                             className="hidden"
                         />
                         <button
+                            onClick={() => {
+                                if (quiz.questions.length > 1 || quiz.questions[0].question !== '' || quiz.title !== '') {
+                                    if (!confirm('This will replace your current quiz with the Grammar Sample. Continue?')) return;
+                                }
+                                setQuiz(GRAMMAR_SAMPLE);
+                                setActiveQuestionIndex(0);
+                            }}
+                            className="px-4 py-2 text-sm font-bold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all flex items-center gap-2"
+                            title="Load Grammar Sample"
+                        >
+                            <span className="text-base">✨</span>
+                            <span className="hidden md:inline">Try Sample</span>
+                        </button>
+                        <button
                             onClick={() => fileInputRef.current?.click()}
                             className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-xl transition-all"
                             title="Import JSON"
@@ -169,7 +184,7 @@ export default function HostPage() {
                     <div className="flex justify-between items-center text-xs font-bold text-gray-400 tracking-widest uppercase px-2 lg:px-0">
                         <span>Questions ({quiz.questions.length})</span>
                     </div>
-                    <div className="flex lg:flex-col overflow-x-auto lg:overflow-y-auto space-x-4 lg:space-x-0 lg:space-y-4 p-4 lg:p-0 custom-scrollbar snap-x no-scrollbar lg:no-scrollbar-off">
+                    <div className="flex lg:flex-col overflow-x-auto lg:overflow-y-auto space-x-4 lg:space-x-0 lg:space-y-4 p-6 -m-6 lg:p-0 lg:m-0 custom-scrollbar snap-x no-scrollbar lg:no-scrollbar-off">
                         {quiz.questions.map((q, idx) => (
                             <div
                                 key={q.id}
