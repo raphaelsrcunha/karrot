@@ -103,9 +103,9 @@ export default function HostPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-50 flex flex-col">
             {/* Header Sticky */}
-            <div className="bg-white/70 backdrop-blur-xl border-b border-gray-200/50 px-8 py-4 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto flex justify-between items-center gap-8">
-                    <div className="flex-1 flex flex-col">
+            <div className="bg-white/70 backdrop-blur-xl border-b border-gray-200/50 px-4 sm:px-8 py-4 sticky top-0 z-50">
+                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex-1 flex flex-col min-w-0">
                         <input
                             type="text"
                             value={quiz.title}
@@ -121,7 +121,7 @@ export default function HostPage() {
                             className="bg-transparent text-sm text-gray-500 border-none focus:ring-0 placeholder:text-gray-300 w-full p-0 mt-1"
                         />
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
                         <input
                             ref={fileInputRef}
                             type="file"
@@ -146,7 +146,7 @@ export default function HostPage() {
                         <div className="w-[1px] h-6 bg-gray-200 mx-1" />
                         <button
                             onClick={handleStartQuiz}
-                            className="px-6 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-medium transition-all shadow-sm hover:shadow-md active:scale-95"
+                            className="px-4 sm:px-6 py-2 sm:py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-medium transition-all shadow-sm hover:shadow-md active:scale-95 whitespace-nowrap"
                         >
                             Start Presentation
                         </button>
@@ -154,19 +154,19 @@ export default function HostPage() {
                 </div>
             </div>
 
-            <div className="flex-1 max-w-7xl mx-auto w-full p-8 flex gap-8 h-[calc(100vh-80px)]">
+            <div className="flex-1 max-w-7xl mx-auto w-full p-4 sm:p-8 flex flex-col lg:flex-row gap-6 sm:gap-8 min-h-[calc(100vh-80px)] lg:h-[calc(100vh-80px)]">
                 {/* Sidebar - Question List */}
-                <div className="w-80 flex flex-col gap-4">
-                    <div className="flex justify-between items-center text-xs font-bold text-gray-400 tracking-widest uppercase">
+                <div className="w-full lg:w-80 flex flex-col gap-4 flex-shrink-0">
+                    <div className="flex justify-between items-center text-xs font-bold text-gray-400 tracking-widest uppercase px-2 lg:px-0">
                         <span>Questions ({quiz.questions.length})</span>
                     </div>
-                    <div className="flex-1 overflow-y-auto space-y-4 p-4 -m-4 custom-scrollbar">
+                    <div className="flex lg:flex-col overflow-x-auto lg:overflow-y-auto space-x-4 lg:space-x-0 lg:space-y-4 p-4 -m-4 custom-scrollbar snap-x no-scrollbar lg:no-scrollbar-off">
                         {quiz.questions.map((q, idx) => (
                             <div
                                 key={q.id}
                                 onClick={() => setActiveQuestionIndex(idx)}
-                                className={`group relative p-6 rounded-[2rem] cursor-pointer transition-all border-[3px] ${activeQuestionIndex === idx
-                                    ? 'bg-white border-indigo-500'
+                                className={`group relative p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] cursor-pointer transition-all border-[3px] flex-shrink-0 w-64 lg:w-full snap-start ${activeQuestionIndex === idx
+                                    ? 'bg-white border-indigo-500 shadow-lg'
                                     : 'bg-white/50 border-transparent hover:border-gray-200'
                                     }`}
                             >
@@ -194,7 +194,7 @@ export default function HostPage() {
                         ))}
                         <button
                             onClick={handleAddQuestion}
-                            className="w-full py-4 border-2 border-dashed border-gray-300 rounded-2xl text-gray-500 hover:border-indigo-400 hover:text-indigo-400 hover:bg-indigo-50/50 transition-all font-bold text-sm flex items-center justify-center gap-2"
+                            className="min-h-[100px] lg:min-h-0 lg:w-full py-4 px-8 border-2 border-dashed border-gray-300 rounded-2xl text-gray-500 hover:border-indigo-400 hover:text-indigo-500 hover:bg-indigo-50/50 transition-all font-bold text-sm flex items-center justify-center gap-2 flex-shrink-0"
                         >
                             <span className="text-lg">+</span> Add Question
                         </button>
@@ -202,14 +202,14 @@ export default function HostPage() {
                 </div>
 
                 {/* Editor Area */}
-                <div className="flex-1">
+                <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
                     {currentQuestion && (
-                        <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden flex flex-col h-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden flex flex-col h-full animate-in fade-in lg:slide-in-from-bottom-4 duration-500">
                             {/* Question Settings Bar */}
-                            <div className="bg-gray-50/50 border-b border-gray-100 p-4 flex items-center justify-between gap-6">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest px-2">Type</span>
-                                    <div className="flex bg-gray-100 p-1 rounded-xl">
+                            <div className="bg-gray-50/50 border-b border-gray-100 p-3 sm:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
+                                <div className="flex items-center gap-2 w-full md:w-auto">
+                                    <span className="hidden sm:inline text-xs font-bold text-gray-400 uppercase tracking-widest px-2">Type</span>
+                                    <div className="flex bg-gray-100 p-1 rounded-xl overflow-x-auto w-full no-scrollbar">
                                         {(['multiple-choice', 'multiple-select', 'word-cloud', 'scales', 'ranking', 'open-ended', 'q-and-a'] as const).map((type) => (
                                             <button
                                                 key={type}
@@ -231,13 +231,13 @@ export default function HostPage() {
                                         ))}
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 ml-auto md:ml-0">
                                     <span className="text-xs font-bold text-gray-400 uppercase tracking-widest px-2">Time (s)</span>
                                     <input
                                         type="number"
                                         value={currentQuestion.timeLimit}
                                         onChange={(e) => updateQuestion(activeQuestionIndex, { timeLimit: parseInt(e.target.value) || 0 })}
-                                        className="w-20 px-3 py-1.5 bg-gray-100 border-none rounded-xl text-center font-black text-indigo-600 focus:ring-2 focus:ring-indigo-400"
+                                        className="w-16 sm:w-20 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 border-none rounded-xl text-center font-black text-indigo-600 focus:ring-2 focus:ring-indigo-400"
                                         min="5"
                                         max="300"
                                     />
@@ -245,15 +245,15 @@ export default function HostPage() {
                             </div>
 
                             {/* Content Editor */}
-                            <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">
-                                <div className="max-w-3xl mx-auto space-y-12">
+                            <div className="flex-1 overflow-y-auto p-6 sm:p-12 custom-scrollbar">
+                                <div className="max-w-3xl mx-auto space-y-8 sm:y-12">
                                     {/* Question Text */}
                                     <div className="space-y-4">
                                         <textarea
                                             value={currentQuestion.question}
                                             onChange={(e) => updateQuestion(activeQuestionIndex, { question: e.target.value })}
                                             placeholder="Write your question here..."
-                                            className="w-full text-4xl font-semibold text-gray-900 border-none focus:ring-0 placeholder:text-gray-200 resize-none min-h-[120px] bg-transparent"
+                                            className="w-full text-2xl sm:text-4xl font-semibold text-gray-900 border-none focus:ring-0 placeholder:text-gray-200 resize-none min-h-[120px] bg-transparent"
                                         />
                                     </div>
 
@@ -266,7 +266,7 @@ export default function HostPage() {
                                                     {currentQuestion.type === 'multiple-select' ? 'Select all correct answers' : 'Select the correct answer'}
                                                 </span>
                                             </div>
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                                 {(currentQuestion.options || []).map((option, idx) => {
                                                     const isCorrect = currentQuestion.type === 'multiple-select'
                                                         ? (currentQuestion.correctAnswers || []).includes(idx)
@@ -355,7 +355,7 @@ export default function HostPage() {
                                     {/* Scales Config */}
                                     {currentQuestion.type === 'scales' && (
                                         <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
-                                            <div className="grid grid-cols-2 gap-8">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8">
                                                 <div className="space-y-4">
                                                     <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest">Labels</h3>
                                                     <div className="space-y-3">
