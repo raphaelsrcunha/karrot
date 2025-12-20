@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Peer, { DataConnection } from 'peerjs';
 import { QRCodeSVG } from 'qrcode.react';
@@ -361,6 +362,12 @@ export default function HostSessionPage() {
         return (
             <div className="min-h-screen bg-[#f1f4f9] p-8 overflow-hidden">
                 <div className="max-w-5xl mx-auto h-[calc(100vh-100px)] flex flex-col">
+                    <div className="flex items-center justify-center gap-4 mb-4">
+                        <Link href="/" className="flex items-center gap-2 group transition-all hover:opacity-80">
+                            <span className="text-3xl text-indigo-500">🥕</span>
+                            <span className="text-xl font-bold text-gray-900 tracking-tight">my karrot</span>
+                        </Link>
+                    </div>
                     <div className="text-center mb-10">
                         <h2 className="text-4xl font-bold text-gray-900 mb-2">Final Results</h2>
                         <p className="text-gray-500 text-lg font-light">Congratulations to everyone!</p>
@@ -443,13 +450,22 @@ export default function HostSessionPage() {
     if (!sessionState.hasStarted) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-100">
-                <div className="bg-white/60 backdrop-blur-md border-b border-gray-200/50 py-6 px-6">
+                <div className="bg-white/60 backdrop-blur-md border-b border-gray-200/50 py-4 px-6">
                     <div className="max-w-7xl mx-auto flex justify-between items-center">
-                        <div>
-                            <h1 className="text-2xl font-semibold text-gray-900">{quiz.title}</h1>
-                            <p className="text-sm text-gray-500 font-light mt-1">
-                                Waiting to start • {quiz.questions.length} questions
-                            </p>
+                        <div className="flex items-center gap-6">
+                            <Link href="/" className="flex items-center gap-2 group transition-all hover:opacity-80">
+                                <span className="text-2xl sm:text-3xl">🥕</span>
+                                <span className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">my karrot</span>
+                            </Link>
+
+                            <div className="w-[1px] h-8 bg-gray-200" />
+
+                            <div>
+                                <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{quiz.title}</h1>
+                                <p className="text-sm text-gray-500 font-light">
+                                    Waiting to start • {quiz.questions.length} questions
+                                </p>
+                            </div>
                         </div>
                         <div className="text-right">
                             <div className="text-xs text-gray-500 font-medium tracking-wide mb-2">ROOM CODE</div>
@@ -591,13 +607,22 @@ export default function HostSessionPage() {
     // QUIZ SCREEN - After quiz has started
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-100">
-            <div className="bg-white/60 backdrop-blur-md border-b border-gray-200/50 py-6 px-6">
+            <div className="bg-white/60 backdrop-blur-md border-b border-gray-200/50 py-4 px-6">
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-semibold text-gray-900">{quiz.title}</h1>
-                        <p className="text-sm text-gray-500 font-light mt-1">
-                            Question {sessionState.currentQuestionIndex + 1} of {quiz.questions.length}
-                        </p>
+                    <div className="flex items-center gap-6">
+                        <Link href="/" className="flex items-center gap-2 group transition-all hover:opacity-80">
+                            <span className="text-2xl sm:text-3xl">🥕</span>
+                            <span className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">my karrot</span>
+                        </Link>
+
+                        <div className="w-[1px] h-8 bg-gray-200" />
+
+                        <div>
+                            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{quiz.title}</h1>
+                            <p className="text-sm text-gray-500 font-light mt-1">
+                                Question {sessionState.currentQuestionIndex + 1} of {quiz.questions.length}
+                            </p>
+                        </div>
                     </div>
                     <div className="text-right">
                         <div className="text-xs text-gray-500 font-medium tracking-wide mb-2">ROOM CODE</div>

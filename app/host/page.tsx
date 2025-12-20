@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Quiz, QuizQuestion } from '@/types/quiz';
 
@@ -103,15 +104,23 @@ export default function HostPage() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-50 flex flex-col">
             {/* Header Sticky */}
-            <div className="bg-white/70 backdrop-blur-xl border-b border-gray-200/50 px-4 sm:px-8 py-4 sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-white/70 backdrop-blur-xl border-b border-gray-200/50 px-4 sm:px-8 py-3 sticky top-0 z-50">
+                <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8">
+                    {/* Brand */}
+                    <Link href="/" className="flex items-center gap-2 group transition-all hover:opacity-80">
+                        <span className="text-2xl sm:text-3xl">🥕</span>
+                        <span className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">my karrot</span>
+                    </Link>
+
+                    <div className="hidden sm:block w-[1px] h-8 bg-gray-200" />
+
                     <div className="flex-1 flex flex-col min-w-0">
                         <input
                             type="text"
                             value={quiz.title}
                             onChange={(e) => setQuiz(prev => ({ ...prev, title: e.target.value }))}
                             placeholder="Untitled Quiz"
-                            className="bg-transparent text-2xl font-semibold text-gray-900 border-none focus:ring-0 placeholder:text-gray-300 w-full p-0"
+                            className="bg-transparent text-xl sm:text-2xl font-semibold text-gray-900 border-none focus:ring-0 placeholder:text-gray-300 w-full p-0 leading-tight"
                         />
                         <input
                             type="text"
@@ -160,7 +169,7 @@ export default function HostPage() {
                     <div className="flex justify-between items-center text-xs font-bold text-gray-400 tracking-widest uppercase px-2 lg:px-0">
                         <span>Questions ({quiz.questions.length})</span>
                     </div>
-                    <div className="flex lg:flex-col overflow-x-auto lg:overflow-y-auto space-x-4 lg:space-x-0 lg:space-y-4 p-4 -m-4 custom-scrollbar snap-x no-scrollbar lg:no-scrollbar-off">
+                    <div className="flex lg:flex-col overflow-x-auto lg:overflow-y-auto space-x-4 lg:space-x-0 lg:space-y-4 p-4 lg:p-0 custom-scrollbar snap-x no-scrollbar lg:no-scrollbar-off">
                         {quiz.questions.map((q, idx) => (
                             <div
                                 key={q.id}
@@ -472,21 +481,6 @@ export default function HostPage() {
                 </div>
             )}
 
-            <style jsx global>{`
-                .custom-scrollbar::-webkit-scrollbar {
-                    width: 6px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: #e2e8f0;
-                    border-radius: 10px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: #cbd5e1;
-                }
-            `}</style>
         </div>
     );
 }

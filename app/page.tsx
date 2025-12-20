@@ -69,17 +69,10 @@ export default function Home() {
           <div className="text-6xl mb-4">🥕</div>
           <h1 className="text-5xl font-semibold text-gray-900 tracking-tight min-h-[60px] flex items-center justify-center">
             <span>{displayText}</span>
-            <span className="w-[2px] h-[40px] bg-gray-900 ml-1 animate-[blink_1s_step-end_infinite]"></span>
+            <span className="w-[2px] h-[40px] bg-gray-900 ml-1 cursor-blink"></span>
           </h1>
           <p className="text-lg text-gray-500 font-light">Interactive presentations made simple</p>
         </div>
-
-        <style jsx>{`
-          @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
-          }
-        `}</style>
 
         {/* Join Room Card */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm border border-gray-100 p-10 space-y-6">
