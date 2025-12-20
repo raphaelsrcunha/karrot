@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Karrot - Interactive Quizzes",
+  title: "my karrot - Interactive Quizzes",
   description: "Create and host interactive quizzes in real-time",
 };
 

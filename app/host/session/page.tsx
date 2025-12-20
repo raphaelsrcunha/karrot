@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Peer, { DataConnection } from 'peerjs';
+import { QRCodeSVG } from 'qrcode.react';
+import confetti from 'canvas-confetti';
 import { Quiz, SessionState, ParticipantAnswer, Participant } from '@/types/quiz';
 
 export default function HostSessionPage() {
@@ -22,9 +24,16 @@ export default function HostSessionPage() {
     const [showRanking, setShowRanking] = useState(false);
     const [isCountingDown, setIsCountingDown] = useState(false);
     const [countdownValue, setCountdownValue] = useState(7);
+    const [copiedLink, setCopiedLink] = useState<'direct' | 'base' | 'code' | null>(null);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
     const router = useRouter();
+
+    const handleCopy = (text: string, type: 'direct' | 'base' | 'code') => {
+        navigator.clipboard.writeText(text);
+        setCopiedLink(type);
+        setTimeout(() => setCopiedLink(null), 2000);
+    };
 
     // Initialize PeerJS and load quiz
     useEffect(() => {
@@ -184,10 +193,14 @@ export default function HostSessionPage() {
         } else if (isCountingDown && countdownValue === 0) {
             setIsCountingDown(false);
             setSessionState(prev => ({ ...prev, hasStarted: true }));
-            broadcastToAll({
-                type: 'QUIZ_STARTED',
-                payload: {}
-            });
+            if (quiz) {
+                broadcastToAll({
+                    type: 'QUIZ_STARTED',
+                    payload: {
+                        timeLeft: quiz.questions[0].timeLimit || 30
+                    }
+                });
+            }
         }
 
         return () => {
@@ -259,6 +272,25 @@ export default function HostSessionPage() {
             type: 'SHOW_RANKING',
             payload: {}
         });
+
+        // Celebration!
+        const duration = 5 * 1000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+        const interval: any = setInterval(function () {
+            const timeLeft = animationEnd - Date.now();
+
+            if (timeLeft <= 0) {
+                return clearInterval(interval);
+            }
+
+            const particleCount = 50 * (timeLeft / duration);
+            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+            confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+        }, 250);
     };
 
     const handleFinishQuiz = () => {
@@ -288,6 +320,17 @@ export default function HostSessionPage() {
                     if (participantAnswer && participantAnswer.answer === question.correctAnswer) {
                         score += 1;
                     }
+                } else if (question.type === 'multiple-select') {
+                    const participantAnswer = sessionState.answers.find(
+                        a => a.participantId === participant.id && a.questionId === question.id
+                    );
+                    if (participantAnswer && Array.isArray(participantAnswer.answer)) {
+                        const correct = question.correctAnswers || [];
+                        const given = participantAnswer.answer as number[];
+                        if (correct.length === given.length && correct.every(v => given.includes(v))) {
+                            score += 1;
+                        }
+                    }
                 }
             });
             return {
@@ -307,85 +350,90 @@ export default function HostSessionPage() {
     // RANKING SCREEN - End of quiz
     if (showRanking) {
         const sortedParticipants = calculateScores();
-        const top3 = sortedParticipants.slice(0, 3);
-        const others = sortedParticipants.slice(3);
+        const maxScore = Math.max(...sortedParticipants.map(p => p.score), 1);
+
+        const colors = [
+            'bg-blue-400', 'bg-red-500', 'bg-emerald-400', 'bg-indigo-400',
+            'bg-purple-500', 'bg-yellow-400', 'bg-cyan-400', 'bg-orange-500',
+            'bg-violet-400', 'bg-emerald-500'
+        ];
 
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-100 p-8">
-                <div className="max-w-4xl mx-auto">
-                    <div className="text-center mb-12">
-                        <span className="text-5xl mb-4 block">🏆</span>
-                        <h2 className="text-4xl font-semibold text-gray-900 mb-2">Final Results</h2>
-                        <p className="text-gray-500 font-light">Congratulations to everyone!</p>
+            <div className="min-h-screen bg-[#f1f4f9] p-8 overflow-hidden">
+                <div className="max-w-5xl mx-auto h-[calc(100vh-100px)] flex flex-col">
+                    <div className="text-center mb-10">
+                        <h2 className="text-4xl font-bold text-gray-900 mb-2">Final Results</h2>
+                        <p className="text-gray-500 text-lg font-light">Congratulations to everyone!</p>
                     </div>
 
-                    {/* Podium */}
-                    <div className="flex justify-center items-end gap-4 mb-12 min-h-[300px]">
-                        {/* 2nd Place */}
-                        {top3[1] && (
-                            <div className="flex flex-col items-center group">
-                                <div className="text-5xl mb-3 transition-transform group-hover:scale-110">{top3[1].avatar}</div>
-                                <div className="text-sm font-medium text-gray-700 mb-2">{top3[1].name}</div>
-                                <div className="w-32 bg-gray-200/50 backdrop-blur-sm border border-gray-100 rounded-t-2xl h-32 flex flex-col items-center justify-center shadow-sm">
-                                    <span className="text-3xl font-bold text-gray-400">2</span>
-                                    <span className="text-sm text-gray-500 font-medium">{top3[1].score} pts</span>
-                                </div>
-                            </div>
-                        )}
-                        {/* 1st Place */}
-                        {top3[0] && (
-                            <div className="flex flex-col items-center group -mt-8">
-                                <div className="text-7xl mb-4 transition-transform group-hover:scale-110 drop-shadow-lg">{top3[0].avatar}</div>
-                                <div className="text-lg font-bold text-gray-900 mb-2">{top3[0].name}</div>
-                                <div className="w-40 bg-indigo-500 rounded-t-3xl h-48 flex flex-col items-center justify-center shadow-xl border-x-4 border-t-4 border-indigo-400">
-                                    <span className="text-5xl font-black text-white">1</span>
-                                    <span className="text-md text-indigo-100 font-semibold">{top3[0].score} pts</span>
-                                </div>
-                            </div>
-                        )}
-                        {/* 3rd Place */}
-                        {top3[2] && (
-                            <div className="flex flex-col items-center group">
-                                <div className="text-5xl mb-3 transition-transform group-hover:scale-110">{top3[2].avatar}</div>
-                                <div className="text-sm font-medium text-gray-700 mb-2">{top3[2].name}</div>
-                                <div className="w-32 bg-orange-100/50 backdrop-blur-sm border border-orange-50 rounded-t-2xl h-24 flex flex-col items-center justify-center shadow-sm">
-                                    <span className="text-2xl font-bold text-orange-400">3</span>
-                                    <span className="text-sm text-orange-500 font-medium">{top3[2].score} pts</span>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    <div className="flex-1 overflow-y-auto px-4 pb-12 custom-scrollbar">
+                        <div className="space-y-4">
+                            {sortedParticipants.map((p, i) => {
+                                const width = Math.max((p.score / maxScore) * 100, 15);
+                                const colorClass = colors[i % colors.length];
 
-                    {/* Other positions */}
-                    {others.length > 0 && (
-                        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm border border-gray-100 p-6 mb-8">
-                            <div className="space-y-2">
-                                {others.map((p, i) => (
-                                    <div key={p.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 transition-colors hover:bg-white hover:border-indigo-100">
-                                        <span className="w-8 text-center font-bold text-gray-400">{i + 4}</span>
-                                        <span className="text-2xl">{p.avatar}</span>
-                                        <span className="flex-1 font-medium text-gray-700">{p.name}</span>
-                                        <span className="font-semibold text-gray-900">{p.score} pts</span>
+                                return (
+                                    <div key={p.id} className="flex items-center group">
+                                        {/* Score Label */}
+                                        <div className="w-24 text-right pr-6 font-black text-3xl text-indigo-600 tabular-nums">
+                                            {p.score} <span className="text-sm font-bold opacity-40">p</span>
+                                        </div>
+
+                                        {/* Bar Container */}
+                                        <div className="flex-1">
+                                            <div
+                                                className={`h-14 flex items-center justify-between px-6 transition-all duration-1000 ease-out relative group-hover:scale-[1.01] ${p.score > 0
+                                                    ? `${colorClass} rounded-r-full shadow-lg border-y-2 border-r-2 border-white/20`
+                                                    : ''
+                                                    }`}
+                                                style={{
+                                                    width: p.score > 0 ? `${width}%` : '100%',
+                                                    animation: p.score > 0 ? `slideIn 1s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.1}s both` : 'none'
+                                                }}
+                                            >
+                                                <div className="flex items-center gap-3 whitespace-nowrap overflow-visible">
+                                                    <div className="text-3xl drop-shadow-sm">{p.avatar}</div>
+                                                    <span className={`font-bold text-xl tracking-tight ${p.score > 0 ? 'text-white' : 'text-gray-400'}`}>{p.name}</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
+                                );
+                            })}
                         </div>
-                    )}
+                    </div>
 
-                    <div className="flex gap-4">
+                    <div className="flex gap-4 pt-10 mt-auto border-t border-gray-200">
                         <button
                             onClick={handleFinishQuiz}
-                            className="flex-1 py-5 bg-gray-900 hover:bg-black text-white rounded-2xl font-medium text-lg transition-all shadow-lg hover:shadow-xl active:scale-[0.98]"
+                            className="flex-1 py-5 bg-gray-900 hover:bg-black text-white rounded-2xl font-bold text-xl transition-all shadow-xl hover:shadow-2xl active:scale-[0.98]"
                         >
                             Finish presentation
                         </button>
                         <button
                             onClick={handleDownloadResults}
-                            className="px-8 py-5 bg-white hover:bg-gray-50 text-gray-700 rounded-2xl font-medium text-lg transition-all shadow-sm border border-gray-200"
+                            className="px-10 py-5 bg-white hover:bg-gray-50 text-gray-700 rounded-2xl font-bold text-xl transition-all shadow-md border-2 border-gray-100"
                         >
-                            📥 Save Results
+                            Save Results
                         </button>
                     </div>
+
+                    <style jsx>{`
+                        @keyframes slideIn {
+                            from { width: 0; opacity: 0; }
+                            to { opacity: 1; }
+                        }
+                        .custom-scrollbar::-webkit-scrollbar {
+                            width: 6px;
+                        }
+                        .custom-scrollbar::-webkit-scrollbar-track {
+                            background: transparent;
+                        }
+                        .custom-scrollbar::-webkit-scrollbar-thumb {
+                            background: #e2e8f0;
+                            border-radius: 10px;
+                        }
+                    `}</style>
                 </div>
             </div>
         );
@@ -405,60 +453,121 @@ export default function HostSessionPage() {
                         </div>
                         <div className="text-right">
                             <div className="text-xs text-gray-500 font-medium tracking-wide mb-2">ROOM CODE</div>
-                            <div className="text-3xl font-light tracking-[0.3em] text-gray-900 bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-100">
+                            <button
+                                onClick={() => handleCopy(roomCode, 'code')}
+                                className={`group relative text-3xl font-light tracking-[0.3em] px-6 py-3 rounded-2xl shadow-sm border transition-all ${copiedLink === 'code' ? 'bg-green-50 border-green-200 text-green-600' : 'bg-white border-gray-100 text-gray-900 hover:border-indigo-400'
+                                    }`}
+                            >
                                 {roomCode}
-                            </div>
+                                <div className={`absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 transition-opacity whitespace-nowrap pointer-events-none ${copiedLink === 'code' ? 'opacity-100' : ''
+                                    }`}>
+                                    {copiedLink === 'code' ? 'Copied!' : 'Click to copy'}
+                                </div>
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <div className="max-w-4xl mx-auto p-8">
-                    <div className="text-center mb-12">
-                        <h2 className="text-4xl font-semibold text-gray-900 mb-4">Waiting for participants</h2>
-                        <p className="text-lg text-gray-500 font-light">Share the room code with your audience</p>
+                <div className="max-w-7xl mx-auto p-8">
+                    <div className="mb-12">
+                        <h2 className="text-4xl font-semibold text-gray-900 mb-2">Waiting for participants</h2>
+                        <p className="text-lg text-gray-500 font-light">
+                            Share the code or scan to join instantly
+                        </p>
                     </div>
 
-                    <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm border border-gray-100 p-10 mb-8">
-                        <div className="flex justify-between items-center mb-8">
-                            <h3 className="text-xl font-semibold text-gray-900">
-                                Participants ({sessionState.participants.length})
-                            </h3>
+                    <div className="grid grid-cols-12 gap-8 items-start">
+                        {/* Participants List - Left Column */}
+                        <div className="col-span-8 space-y-8">
+                            <div className="bg-white/80 backdrop-blur-sm rounded-[2.5rem] shadow-sm border border-gray-100 p-10 min-h-[450px] flex flex-col">
+                                <div className="flex justify-between items-center mb-8">
+                                    <h3 className="text-xl font-semibold text-gray-900">
+                                        Participants ({sessionState.participants.length})
+                                    </h3>
+                                </div>
+
+                                <div className="flex-1">
+                                    {sessionState.participants.length > 0 ? (
+                                        <div className="flex flex-wrap gap-6 justify-center items-center py-10">
+                                            {sessionState.participants.map((participant) => (
+                                                <div key={participant.id} className="flex flex-col items-center gap-3 animate-in zoom-in-50 duration-300">
+                                                    <div className="text-7xl drop-shadow-sm">{participant.avatar}</div>
+                                                    <span className="text-sm font-medium text-gray-700 max-w-[120px] truncate text-center bg-white px-3 py-1 rounded-full shadow-sm">
+                                                        {participant.name}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-20 opacity-40">
+                                            <p className="text-gray-900 font-medium text-xl">Waiting for people to join...</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mt-8">
+                                    <button
+                                        onClick={handleStartQuiz}
+                                        disabled={sessionState.participants.length === 0}
+                                        className={`w-full py-5 rounded-2xl font-medium text-lg transition-all shadow-sm ${sessionState.participants.length > 0
+                                            ? 'bg-indigo-500 hover:bg-indigo-600 text-white hover:shadow-md active:scale-[0.98]'
+                                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                            }`}
+                                    >
+                                        Start presentation
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50/50 border border-blue-100/50 rounded-3xl p-6">
+                                <h4 className="font-semibold text-blue-900 mb-3 text-sm tracking-wide">NEXT STEPS</h4>
+                                <ul className="flex gap-8 text-sm text-blue-800">
+                                    <li>• Participants join using the code</li>
+                                    <li>• Click "Start" when everyone arrives</li>
+                                    <li>• Navigate via arrows or keyboard</li>
+                                </ul>
+                            </div>
                         </div>
 
-                        {sessionState.participants.length > 0 ? (
-                            <>
-                                <div className="flex flex-wrap gap-6 justify-center mb-10 min-h-[150px] items-center">
-                                    {sessionState.participants.map((participant) => (
-                                        <div key={participant.id} className="flex flex-col items-center gap-3">
-                                            <div className="text-7xl">{participant.avatar}</div>
-                                            <span className="text-sm font-medium text-gray-700 max-w-[120px] truncate text-center">
-                                                {participant.name}
-                                            </span>
-                                        </div>
-                                    ))}
+                        {/* QR Code & Join Info - Right Column */}
+                        <div className="col-span-4 space-y-6">
+                            <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 p-8 flex flex-col items-center text-center">
+                                <div className="w-full text-xs font-bold text-gray-400 tracking-widest uppercase mb-6">Scan to join</div>
+                                <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100 mb-6 group transition-transform hover:scale-105">
+                                    <QRCodeSVG
+                                        value={`https://mykarrot.netlify.app/join/${roomCode}`}
+                                        size={200}
+                                        level="H"
+                                        includeMargin={false}
+                                    />
                                 </div>
-                                <button
-                                    onClick={handleStartQuiz}
-                                    className="w-full py-5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-2xl font-medium text-lg transition-all shadow-sm hover:shadow-md"
-                                >
-                                    Start presentation
-                                </button>
-                            </>
-                        ) : (
-                            <div className="text-center py-20">
-                                <div className="text-7xl mb-6">👋</div>
-                                <p className="text-gray-400 font-light text-lg">Waiting for participants to join...</p>
-                            </div>
-                        )}
-                    </div>
+                                <div className="space-y-4 w-full">
+                                    <button
+                                        onClick={() => handleCopy(`https://mykarrot.netlify.app/join/${roomCode}`, 'direct')}
+                                        className="w-full text-left group/copy relative"
+                                    >
+                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Join via URL</div>
+                                        <div className={`text-indigo-600 font-semibold break-all text-sm px-4 py-2 rounded-xl transition-all border-2 ${copiedLink === 'direct' ? 'bg-green-50 border-green-200 text-green-600' : 'bg-indigo-50 border-transparent group-hover/copy:border-indigo-200'
+                                            }`}>
+                                            {copiedLink === 'direct' ? '✓ Copied to clipboard!' : `mykarrot.netlify.app/join/${roomCode}`}
+                                        </div>
+                                    </button>
 
-                    <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6">
-                        <h4 className="font-semibold text-blue-900 mb-3 text-sm tracking-wide">💡 NEXT STEPS</h4>
-                        <ul className="space-y-2 text-sm text-blue-800">
-                            <li>• Participants can join using the room code</li>
-                            <li>• Click "Start presentation" when everyone has joined</li>
-                            <li>• You'll be able to navigate through questions and see responses</li>
-                        </ul>
+                                    <div className="pt-4 border-t border-gray-100 w-full">
+                                        <button
+                                            onClick={() => handleCopy('https://mykarrot.netlify.app', 'base')}
+                                            className="group/copy w-full"
+                                        >
+                                            <p className="text-sm text-gray-500 font-light mb-1">Enter room code manually at</p>
+                                            <div className={`font-medium transition-all inline-block px-3 py-1 rounded-lg ${copiedLink === 'base' ? 'bg-green-50 text-green-600' : 'text-gray-700 group-hover/copy:bg-gray-100'
+                                                }`}>
+                                                {copiedLink === 'base' ? '✓ Link copied!' : 'mykarrot.netlify.app'}
+                                            </div>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -492,9 +601,17 @@ export default function HostSessionPage() {
                     </div>
                     <div className="text-right">
                         <div className="text-xs text-gray-500 font-medium tracking-wide mb-2">ROOM CODE</div>
-                        <div className="text-3xl font-light tracking-[0.3em] text-gray-900 bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-100">
+                        <button
+                            onClick={() => handleCopy(roomCode, 'code')}
+                            className={`group relative text-3xl font-light tracking-[0.3em] px-6 py-3 rounded-2xl shadow-sm border transition-all ${copiedLink === 'code' ? 'bg-green-50 border-green-200 text-green-600' : 'bg-white border-gray-100 text-gray-900 hover:border-indigo-400'
+                                }`}
+                        >
                             {roomCode}
-                        </div>
+                            <div className={`absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 transition-opacity whitespace-nowrap pointer-events-none ${copiedLink === 'code' ? 'opacity-100' : ''
+                                }`}>
+                                {copiedLink === 'code' ? 'Copied!' : 'Click to copy'}
+                            </div>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -509,22 +626,31 @@ export default function HostSessionPage() {
                                         {currentQuestion.type.replace('-', ' ').toUpperCase()}
                                     </span>
                                     {timeLeft !== null && (
-                                        <div className={`text-3xl font-bold ${timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-gray-900'}`}>
-                                            {timeLeft}s
+                                        <div className="flex items-center gap-3">
+                                            <div className={`text-5xl font-mono font-bold tracking-tighter tabular-nums px-6 py-3 bg-white rounded-2xl shadow-sm border-2 ${timeLeft <= 5 ? 'text-red-500 border-red-100 animate-pulse' : 'text-indigo-600 border-indigo-50'}`}>
+                                                {timeLeft < 10 ? `0${timeLeft}` : timeLeft}
+                                                <span className="text-xl ml-1 opacity-50">s</span>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
                                 <h2 className="text-4xl font-semibold text-gray-900 leading-tight">{currentQuestion.question}</h2>
                             </div>
 
-                            {currentQuestion.type === 'multiple-choice' && currentQuestion.options && (
+                            {(currentQuestion.type === 'multiple-choice' || currentQuestion.type === 'multiple-select') && currentQuestion.options && (
                                 <div className="grid grid-cols-2 gap-4 mt-8">
                                     {currentQuestion.options.map((option, idx) => {
-                                        const answerCount = currentAnswers.filter(a => a.answer === idx).length;
+                                        const answerCount = currentAnswers.filter(a => {
+                                            if (Array.isArray(a.answer)) {
+                                                return a.answer.includes(idx);
+                                            }
+                                            return a.answer === idx;
+                                        }).length;
+
                                         const percentage = currentAnswers.length > 0 ? (answerCount / currentAnswers.length) * 100 : 0;
                                         return (
                                             <div key={idx} className="relative bg-gray-50 rounded-2xl p-6 overflow-hidden border border-gray-100">
-                                                <div className="absolute inset-0 bg-indigo-100 transition-all duration-500" style={{ width: `${percentage}%` }} />
+                                                <div className="absolute inset-0 bg-indigo-100 transition-all duration-500" style={{ width: `${Math.min(percentage, 100)}%` }} />
                                                 <div className="relative flex justify-between items-center">
                                                     <span className="font-medium text-lg text-gray-900">{option}</span>
                                                     <span className="text-2xl font-semibold text-indigo-600">{answerCount}</span>
@@ -548,32 +674,137 @@ export default function HostSessionPage() {
                             )}
 
                             {currentQuestion.type === 'open-ended' && (
-                                <div className="mt-8 space-y-3 max-h-[400px] overflow-y-auto">
+                                <div className="mt-8 space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                                     {currentAnswers.map((answer, idx) => (
-                                        <div key={idx} className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
-                                            <div className="text-xs text-gray-500 font-medium mb-2">{answer.participantName}</div>
-                                            <div className="text-gray-900">{answer.answer}</div>
+                                        <div key={idx} className="bg-blue-50/30 rounded-2xl p-6 border border-blue-100 flex items-start gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-xl shadow-sm border border-blue-50">
+                                                {sessionState.participants.find(p => p.id === answer.participantId)?.avatar || '👤'}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="text-xs text-blue-400 font-bold uppercase tracking-wider mb-1">{answer.participantName}</div>
+                                                <div className="text-lg text-gray-900 font-medium leading-relaxed">{answer.answer}</div>
+                                            </div>
                                         </div>
                                     ))}
+                                </div>
+                            )}
+
+                            {currentQuestion.type === 'q-and-a' && (
+                                <div className="mt-8 space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Audience Questions</h3>
+                                        <span className="text-xs px-2 py-1 bg-indigo-100 text-indigo-600 rounded-lg font-bold">{currentAnswers.length} Questions</span>
+                                    </div>
+                                    {currentAnswers.map((answer, idx) => (
+                                        <div key={idx} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex items-start gap-4 hover:border-indigo-200 transition-all group">
+                                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-2xl shadow-inner">
+                                                {sessionState.participants.find(p => p.id === answer.participantId)?.avatar || '❓'}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex justify-between items-start">
+                                                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">{answer.participantName}</span>
+                                                    <span className="text-[10px] text-gray-300 font-medium">{new Date(answer.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                </div>
+                                                <div className="text-xl text-gray-900 font-semibold mt-1 group-hover:text-indigo-900 transition-colors">{answer.answer}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {currentAnswers.length === 0 && (
+                                        <div className="py-20 text-center opacity-30 italic text-gray-500">No questions yet...</div>
+                                    )}
+                                </div>
+                            )}
+
+                            {currentQuestion.type === 'scales' && (
+                                <div className="mt-8 space-y-12">
+                                    <div className="grid grid-cols-1 gap-8 max-w-2xl mx-auto">
+                                        {(() => {
+                                            const total = currentAnswers.reduce((sum, a) => sum + (typeof a.answer === 'number' ? a.answer : 0), 0);
+                                            const avg = currentAnswers.length > 0 ? total / currentAnswers.length : 0;
+                                            return (
+                                                <div className="space-y-6">
+                                                    <div className="flex justify-between items-end">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-4xl font-black text-indigo-600 tracking-tighter">{avg.toFixed(1)}</span>
+                                                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Average Score</span>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest">{currentAnswers.length} responses</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="relative h-12 bg-gray-100 rounded-3xl p-1 overflow-hidden shadow-inner border border-gray-200">
+                                                        {(() => {
+                                                            const min = currentQuestion.scaleMin ?? 1;
+                                                            const max = currentQuestion.scaleMax ?? 10;
+                                                            const percentage = max > min ? ((avg - min) / (max - min)) * 100 : 0;
+                                                            return (
+                                                                <div className="absolute inset-y-1 left-1 bg-indigo-500 rounded-2xl transition-all duration-1000 ease-out flex items-center justify-end px-4" style={{ width: `calc(${percentage}% - 8px)` }}>
+                                                                    {avg > min && <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse shadow-sm"></div>}
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                        <div className="absolute inset-0 flex justify-between px-6 items-center pointer-events-none">
+                                                            <span className="text-[10px] font-black text-gray-400">{currentQuestion.scaleLabels?.min || 'Low'}</span>
+                                                            <span className="text-[10px] font-black text-gray-400">{currentQuestion.scaleLabels?.max || 'High'}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                            )}
+
+                            {currentQuestion.type === 'ranking' && (
+                                <div className="mt-8 grid grid-cols-1 gap-4 max-w-2xl mx-auto">
+                                    {(() => {
+                                        const scores = currentQuestion.options?.map((_, idx) => {
+                                            const rankings = currentAnswers
+                                                .filter(a => Array.isArray(a.answer))
+                                                .map(a => (a.answer as unknown as number[]).indexOf(idx));
+
+                                            // Score formula: points for each position (higher points for 1st place)
+                                            // If option.length = 3, 1st = 3pts, 2nd = 2pts, 3rd = 1pt
+                                            const totalScore = rankings.reduce((sum, pos) => {
+                                                if (pos === -1) return sum;
+                                                return sum + (currentQuestion.options!.length - pos);
+                                            }, 0);
+
+                                            return { idx, score: totalScore };
+                                        }).sort((a, b) => b.score - a.score);
+
+                                        const maxScore = scores ? Math.max(...scores.map(s => s.score), 1) : 1;
+
+                                        return scores?.map((s, i) => (
+                                            <div key={s.idx} className="relative bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex items-center justify-between overflow-hidden group">
+                                                <div className="absolute inset-y-0 left-0 bg-indigo-50 transition-all duration-1000" style={{ width: `${(s.score / maxScore) * 100}%` }} />
+                                                <div className="relative flex items-center gap-4 flex-1">
+                                                    <span className="w-8 h-8 flex items-center justify-center bg-indigo-500 text-white rounded-lg font-black text-sm shadow-sm">{i + 1}</span>
+                                                    <span className="font-semibold text-lg text-gray-800">{currentQuestion.options![s.idx]}</span>
+                                                </div>
+                                                <div className="relative text-xs font-bold text-indigo-400 uppercase tracking-widest bg-white/50 px-3 py-1 rounded-full">{s.score} pts</div>
+                                            </div>
+                                        ));
+                                    })()}
                                 </div>
                             )}
                         </div>
 
                         <div className="flex gap-3">
                             <button onClick={handlePreviousQuestion} disabled={sessionState.currentQuestionIndex === 0} className="px-6 py-3 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:cursor-not-allowed rounded-2xl font-medium text-gray-700 disabled:text-gray-400 transition-all shadow-sm border border-gray-200">
-                                ← Previous
+                                Previous
                             </button>
                             {sessionState.currentQuestionIndex === quiz.questions.length - 1 ? (
                                 <button onClick={handleShowRanking} className="flex-1 px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-2xl font-medium transition-all shadow-sm">
-                                    Show results 🏆
+                                    Show results
                                 </button>
                             ) : (
                                 <button onClick={handleNextQuestion} className="flex-1 px-6 py-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-2xl font-medium transition-all shadow-sm">
-                                    Next question →
+                                    Next question
                                 </button>
                             )}
                             <button onClick={handleDownloadResults} className="px-6 py-3 bg-white hover:bg-gray-50 rounded-2xl font-medium text-gray-700 transition-all shadow-sm border border-gray-200">
-                                📥 Results
+                                Save Results
                             </button>
                         </div>
                     </div>
@@ -639,16 +870,7 @@ export default function HostSessionPage() {
                 </div>
             </div>
 
-            {/* Timer Progress Bar */}
-            {sessionState.hasStarted && timeLeft !== null && (
-                <div className="w-full h-1.5 bg-gray-200 overflow-hidden">
-                    <div
-                        className={`h-full transition-all duration-1000 ease-linear ${timeLeft <= 5 ? 'bg-red-500' : 'bg-indigo-500'
-                            }`}
-                        style={{ width: `${(timeLeft / (currentQuestion.timeLimit || 30)) * 100}%` }}
-                    />
-                </div>
-            )}
+            {/* Removed Bottom Progress Bar as requested */}
         </div>
     );
 }

@@ -11,8 +11,8 @@ export default function Home() {
       <div className="max-w-lg w-full space-y-12">
         {/* Logo & Title */}
         <div className="text-center space-y-3">
-          <div className="inline-block text-6xl mb-4">🥕</div>
-          <h1 className="text-5xl font-semibold text-gray-900 tracking-tight">Karrot</h1>
+          <div className="text-6xl mb-4">🥕</div>
+          <h1 className="text-5xl font-semibold text-gray-900 tracking-tight">my karrot</h1>
           <p className="text-lg text-gray-500 font-light">Interactive presentations made simple</p>
         </div>
 
@@ -35,8 +35,8 @@ export default function Home() {
           <Link
             href={`/join/${roomCode}`}
             className={`block w-full py-4 px-6 rounded-2xl font-medium text-center transition-all ${roomCode.length === 6
-                ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm hover:shadow-md'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              ? 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm hover:shadow-md'
+              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
             onClick={(e) => {
               if (roomCode.length !== 6) e.preventDefault();
@@ -51,7 +51,7 @@ export default function Home() {
           <p className="text-sm text-gray-500 font-light">Want to create a presentation?</p>
           <Link
             href="/host"
-            className="inline-flex items-center px-8 py-3 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-medium rounded-full transition-all shadow-sm hover:shadow"
+            className="inline-flex items-center px-10 py-4 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-2xl transition-all shadow-md hover:shadow-xl hover:-translate-y-1 active:scale-95"
           >
             Create presentation
           </Link>

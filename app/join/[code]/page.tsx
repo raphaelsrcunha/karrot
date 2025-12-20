@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Peer, { DataConnection } from 'peerjs';
 import { Quiz, QuizQuestion } from '@/types/quiz';
 import { getRandomAvatar } from '@/lib/avatars';
+import confetti from 'canvas-confetti';
 
 export default function JoinPage() {
     const params = useParams();
@@ -18,7 +19,7 @@ export default function JoinPage() {
     const [connection, setConnection] = useState<DataConnection | null>(null);
     const [quiz, setQuiz] = useState<Quiz | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [selectedAnswer, setSelectedAnswer] = useState<string | number | null>(null); // Kept this one, removed duplicate
+    const [selectedAnswer, setSelectedAnswer] = useState<string | number | number[] | null>(null);
     const [hasAnswered, setHasAnswered] = useState(false);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [isTimeUp, setIsTimeUp] = useState(false);
@@ -98,7 +99,10 @@ export default function JoinPage() {
 
             case 'QUIZ_STARTED':
                 setStep('quiz');
-                setIsCountingDown(false); // Modified
+                setIsCountingDown(false);
+                if (data.payload.timeLeft) {
+                    setTimeLeft(data.payload.timeLeft);
+                }
                 break;
 
             case 'QUIZ_STARTING': // Added
@@ -120,6 +124,13 @@ export default function JoinPage() {
 
             case 'SHOW_RANKING':
                 setStep('ranking');
+                // Celebration for participants too!
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#6366f1', '#a855f7', '#ec4899']
+                });
                 break;
 
             case 'QUIZ_ENDED':
@@ -283,7 +294,6 @@ export default function JoinPage() {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-100 flex items-center justify-center p-6 text-center">
                 <div className="space-y-6">
-                    <div className="text-8xl mb-6">🏆</div>
                     <h2 className="text-4xl font-semibold text-gray-900">Quiz Complete!</h2>
                     <p className="text-xl text-gray-600 font-light">The host is reviewing the results.</p>
                     <div className="flex gap-2 justify-center mt-8">
@@ -299,6 +309,31 @@ export default function JoinPage() {
     // Quiz Step
     if (step === 'quiz' && quiz) {
         const currentQuestion = quiz.questions[currentQuestionIndex];
+
+        if (hasAnswered && !isTimeUp) {
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-100 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-700">
+                    <div className="space-y-12 max-w-md">
+                        <div className="relative inline-block">
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl animate-pulse"></div>
+                            </div>
+                        </div>
+                        <div className="space-y-4">
+                            <h2 className="text-3xl font-semibold text-gray-900 leading-tight">Great job!</h2>
+                            <p className="text-xl text-gray-600 font-light px-4">
+                                Your answer has been submitted. Please wait for the presenter to move to the next slide.
+                            </p>
+                        </div>
+                        <div className="flex gap-2 justify-center pt-8">
+                            <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                            <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                            <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
 
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-100 flex items-center justify-center p-6">
@@ -316,19 +351,12 @@ export default function JoinPage() {
                         </div>
                     </div>
 
-                    {/* Timer Bar */}
+                    {/* Digital Timer */}
                     {timeLeft !== null && (
-                        <div className="mb-6">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className={`text-xs font-semibold tracking-wide ${timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-indigo-600'}`}>
-                                    {isTimeUp ? "TIME'S UP!" : `${timeLeft}s REMAINING`}
-                                </span>
-                            </div>
-                            <div className="w-full bg-gray-100 rounded-full h-1 overflow-hidden">
-                                <div
-                                    className={`h-full transition-all duration-1000 ease-linear ${timeLeft <= 5 ? 'bg-red-500' : 'bg-indigo-500'}`}
-                                    style={{ width: `${(timeLeft / (currentQuestion.timeLimit || 30)) * 100}%` }}
-                                />
+                        <div className="flex justify-center mb-8">
+                            <div className={`text-6xl font-mono font-bold tracking-tighter tabular-nums px-8 py-4 bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm border-2 transition-all ${timeLeft <= 5 ? 'text-red-500 border-red-100 animate-pulse scale-105' : 'text-indigo-600 border-indigo-50'}`}>
+                                {isTimeUp ? "00" : (timeLeft < 10 ? `0${timeLeft}` : timeLeft)}
+                                <span className="text-2xl ml-1 opacity-50">s</span>
                             </div>
                         </div>
                     )}
@@ -337,37 +365,138 @@ export default function JoinPage() {
                     <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-sm border border-gray-100 p-10 mb-6">
                         <h2 className="text-3xl font-semibold text-gray-900 mb-10 leading-tight">{currentQuestion.question}</h2>
 
-                        {/* Multiple Choice */}
-                        {currentQuestion.type === 'multiple-choice' && currentQuestion.options && (
+                        {/* Multiple Choice & Multiple Select */}
+                        {(currentQuestion.type === 'multiple-choice' || currentQuestion.type === 'multiple-select') && currentQuestion.options && (
                             <div className="space-y-3">
-                                {currentQuestion.options.map((option, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => !hasAnswered && !isTimeUp && setSelectedAnswer(idx)}
-                                        disabled={hasAnswered || isTimeUp}
-                                        className={`w-full p-5 rounded-2xl font-medium text-left transition-all border ${selectedAnswer === idx
-                                            ? 'bg-indigo-500 text-white border-indigo-500 shadow-md scale-[1.02]'
-                                            : 'bg-gray-50 text-gray-900 border-gray-100 hover:bg-gray-100'
-                                            } ${hasAnswered || isTimeUp ? 'cursor-not-allowed opacity-60' : ''}`}
-                                    >
-                                        {option}
-                                    </button>
-                                ))}
+                                {currentQuestion.type === 'multiple-select' && (
+                                    <p className="text-xs text-indigo-400 font-medium italic mb-2">Select all that apply</p>
+                                )}
+                                {currentQuestion.options.map((option, idx) => {
+                                    const isSelected = currentQuestion.type === 'multiple-select'
+                                        ? (Array.isArray(selectedAnswer) && selectedAnswer.includes(idx))
+                                        : selectedAnswer === idx;
+
+                                    return (
+                                        <button
+                                            key={idx}
+                                            onClick={() => {
+                                                if (hasAnswered || isTimeUp) return;
+                                                if (currentQuestion.type === 'multiple-select') {
+                                                    const current = Array.isArray(selectedAnswer) ? [...selectedAnswer] : [];
+                                                    const exists = current.indexOf(idx);
+                                                    if (exists > -1) {
+                                                        current.splice(exists, 1);
+                                                    } else {
+                                                        current.push(idx);
+                                                    }
+                                                    setSelectedAnswer(current);
+                                                } else {
+                                                    setSelectedAnswer(idx);
+                                                }
+                                            }}
+                                            disabled={hasAnswered || isTimeUp}
+                                            className={`w-full p-5 rounded-2xl font-medium text-left transition-all border flex items-center justify-between ${isSelected
+                                                ? 'bg-indigo-500 text-white border-indigo-500 shadow-md scale-[1.02]'
+                                                : 'bg-gray-50 text-gray-900 border-gray-100 hover:bg-gray-100'
+                                                } ${hasAnswered || isTimeUp ? 'cursor-not-allowed opacity-60' : ''}`}
+                                        >
+                                            <span>{option}</span>
+                                            {currentQuestion.type === 'multiple-select' && (
+                                                <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isSelected
+                                                    ? 'bg-white/20 border-white text-white'
+                                                    : 'bg-white border-gray-300 text-transparent'
+                                                    }`}>
+                                                    <span className="text-[10px]">✓</span>
+                                                </div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         )}
 
-                        {/* Word Cloud / Open Ended */}
-                        {(currentQuestion.type === 'word-cloud' || currentQuestion.type === 'open-ended') && (
-                            <div>
+                        {/* Word Cloud / Open Ended / Q&A */}
+                        {(currentQuestion.type === 'word-cloud' || currentQuestion.type === 'open-ended' || currentQuestion.type === 'q-and-a') && (
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <textarea
                                     value={selectedAnswer as string || ''}
                                     onChange={(e) => setSelectedAnswer(e.target.value)}
                                     disabled={hasAnswered || isTimeUp}
-                                    placeholder={isTimeUp ? "Time is up!" : "Type your answer..."}
-                                    className="w-full px-5 py-4 bg-gray-50 border-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition-all resize-none text-gray-900 placeholder:text-gray-300"
-                                    rows={currentQuestion.type === 'word-cloud' ? 2 : 4}
+                                    placeholder={
+                                        isTimeUp ? "Time is up!" :
+                                            currentQuestion.type === 'q-and-a' ? "Type your question for the presenter..." :
+                                                "Type your answer..."
+                                    }
+                                    className="w-full px-5 py-4 bg-gray-50 border-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition-all resize-none text-gray-900 placeholder:text-gray-300 min-h-[120px]"
                                     maxLength={currentQuestion.type === 'word-cloud' ? 50 : 500}
                                 />
+                            </div>
+                        )}
+
+                        {/* Scales */}
+                        {currentQuestion.type === 'scales' && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 py-4">
+                                <div className="flex justify-between text-xs font-bold text-gray-600 uppercase tracking-widest px-1">
+                                    <span>{currentQuestion.scaleLabels?.min || 'Low'}</span>
+                                    <span>{currentQuestion.scaleLabels?.max || 'High'}</span>
+                                </div>
+                                <div className="relative h-12 flex items-center">
+                                    <input
+                                        type="range"
+                                        min={currentQuestion.scaleMin ?? 1}
+                                        max={currentQuestion.scaleMax ?? 10}
+                                        step="1"
+                                        value={selectedAnswer as number ?? Math.round(((currentQuestion.scaleMax ?? 10) + (currentQuestion.scaleMin ?? 1)) / 2)}
+                                        onChange={(e) => setSelectedAnswer(parseInt(e.target.value))}
+                                        disabled={hasAnswered || isTimeUp}
+                                        className="w-full h-2 bg-indigo-50 rounded-lg appearance-none cursor-pointer accent-indigo-500 disabled:opacity-50"
+                                    />
+                                    <div className="absolute top-10 left-0 right-0 flex justify-between px-1">
+                                        {Array.from({ length: (currentQuestion.scaleMax ?? 10) - (currentQuestion.scaleMin ?? 1) + 1 }, (_, i) => (currentQuestion.scaleMin ?? 1) + i).map(val => (
+                                            <span key={val} className={`text-[10px] font-bold ${(selectedAnswer ?? Math.round(((currentQuestion.scaleMax ?? 10) + (currentQuestion.scaleMin ?? 1)) / 2)) === val ? 'text-indigo-600' : 'text-gray-300'}`}>
+                                                {val}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Ranking */}
+                        {currentQuestion.type === 'ranking' && currentQuestion.options && (
+                            <div className="space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <p className="text-xs text-indigo-400 font-medium italic mb-2">Tap to set priority (1 to {currentQuestion.options.length})</p>
+                                {currentQuestion.options.map((option, idx) => {
+                                    const rank = Array.isArray(selectedAnswer) ? selectedAnswer.indexOf(idx) + 1 : 0;
+                                    return (
+                                        <button
+                                            key={idx}
+                                            onClick={() => {
+                                                if (hasAnswered || isTimeUp) return;
+                                                const currentSelection = Array.isArray(selectedAnswer) ? [...selectedAnswer] : [];
+                                                const existingIdx = currentSelection.indexOf(idx);
+                                                if (existingIdx > -1) {
+                                                    currentSelection.splice(existingIdx, 1);
+                                                } else {
+                                                    currentSelection.push(idx);
+                                                }
+                                                setSelectedAnswer(currentSelection as any);
+                                            }}
+                                            disabled={hasAnswered || isTimeUp}
+                                            className={`w-full p-5 rounded-2xl font-medium text-left transition-all border flex items-center justify-between ${rank > 0
+                                                ? 'bg-indigo-500 text-white border-indigo-500 shadow-md scale-[1.02]'
+                                                : 'bg-gray-50 text-gray-900 border-gray-100 hover:bg-gray-100'
+                                                } ${hasAnswered || isTimeUp ? 'cursor-not-allowed opacity-60' : ''}`}
+                                        >
+                                            <span>{option}</span>
+                                            {rank > 0 && (
+                                                <span className="w-8 h-8 flex items-center justify-center bg-white/20 rounded-full font-bold text-sm">
+                                                    {rank}
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
@@ -386,7 +515,7 @@ export default function JoinPage() {
                         </button>
                     ) : (
                         <div className="text-center bg-green-500 text-white py-5 rounded-2xl font-medium text-lg shadow-sm">
-                            ✓ Answer submitted!
+                            Answer submitted!
                         </div>
                     )}
                 </div>
