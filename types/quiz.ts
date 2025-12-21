@@ -9,6 +9,7 @@ export interface QuizQuestion {
   scaleLabels?: { min: string; max: string }; // For scales
   scaleMin?: number; // For scales
   scaleMax?: number; // For scales
+  correctOrder?: number[]; // For ranking
 }
 
 export interface Quiz {
@@ -23,6 +24,7 @@ export interface ParticipantAnswer {
   questionId: string;
   answer: string | number | number[];
   timestamp: number;
+  timeLeftAtAnswer?: number;
 }
 
 export interface SessionState {

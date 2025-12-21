@@ -237,14 +237,23 @@ export default function HostPage() {
                                         {(['multiple-choice', 'multiple-select', 'word-cloud', 'scales', 'ranking', 'open-ended', 'q-and-a'] as const).map((type) => (
                                             <button
                                                 key={type}
-                                                onClick={() => updateQuestion(activeQuestionIndex, {
-                                                    type,
-                                                    options: (type === 'multiple-choice' || type === 'multiple-select' || type === 'ranking') && !currentQuestion.options ? ['', '', ''] : currentQuestion.options,
-                                                    scaleLabels: type === 'scales' ? { min: 'Low', max: 'High' } : currentQuestion.scaleLabels,
-                                                    scaleMin: type === 'scales' ? 1 : currentQuestion.scaleMin,
-                                                    scaleMax: type === 'scales' ? 10 : currentQuestion.scaleMax,
-                                                    correctAnswers: type === 'multiple-select' ? (currentQuestion.correctAnswers || [0]) : undefined
-                                                })}
+                                                onClick={() => {
+                                                    const updates: Partial<QuizQuestion> = {
+                                                        type,
+                                                        options: (type === 'multiple-choice' || type === 'multiple-select' || type === 'ranking') && !currentQuestion.options ? ['', '', ''] : currentQuestion.options,
+                                                        scaleLabels: type === 'scales' ? { min: 'Low', max: 'High' } : currentQuestion.scaleLabels,
+                                                        scaleMin: type === 'scales' ? 1 : currentQuestion.scaleMin,
+                                                        scaleMax: type === 'scales' ? 10 : currentQuestion.scaleMax,
+                                                        correctAnswers: type === 'multiple-select' ? (currentQuestion.correctAnswers || [0]) : undefined
+                                                    };
+
+                                                    if (type === 'ranking') {
+                                                        const optCount = (updates.options || []).length;
+                                                        updates.correctOrder = Array.from({ length: optCount }, (_, i) => i);
+                                                    }
+
+                                                    updateQuestion(activeQuestionIndex, updates);
+                                                }}
                                                 className={`px-2 py-1.5 text-[10px] font-bold rounded-lg transition-all whitespace-nowrap ${currentQuestion.type === type
                                                     ? 'bg-white text-indigo-600 shadow-sm'
                                                     : 'text-gray-500 hover:text-gray-700'
@@ -447,6 +456,40 @@ export default function HostPage() {
                                             <div className="grid grid-cols-1 gap-3">
                                                 {(currentQuestion.options || []).map((option, idx) => (
                                                     <div key={idx} className="flex items-center gap-3 p-4 rounded-2xl bg-gray-50/50 border-2 border-transparent hover:border-gray-100 group transition-all">
+                                                        <div className="flex flex-col gap-1 pr-1 border-r border-gray-200">
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (idx === 0) return;
+                                                                    const newOptions = [...(currentQuestion.options || [])];
+                                                                    const item = newOptions.splice(idx, 1)[0];
+                                                                    newOptions.splice(idx - 1, 0, item);
+                                                                    updateQuestion(activeQuestionIndex, {
+                                                                        options: newOptions,
+                                                                        correctOrder: newOptions.map((_, i) => i)
+                                                                    });
+                                                                }}
+                                                                disabled={idx === 0}
+                                                                className={`text-[10px] p-0.5 hover:bg-white rounded transition-colors ${idx === 0 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-indigo-500'}`}
+                                                            >
+                                                                ▲
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (idx === (currentQuestion.options?.length || 0) - 1) return;
+                                                                    const newOptions = [...(currentQuestion.options || [])];
+                                                                    const item = newOptions.splice(idx, 1)[0];
+                                                                    newOptions.splice(idx + 1, 0, item);
+                                                                    updateQuestion(activeQuestionIndex, {
+                                                                        options: newOptions,
+                                                                        correctOrder: newOptions.map((_, i) => i)
+                                                                    });
+                                                                }}
+                                                                disabled={idx === (currentQuestion.options?.length || 0) - 1}
+                                                                className={`text-[10px] p-0.5 hover:bg-white rounded transition-colors ${idx === (currentQuestion.options?.length || 0) - 1 ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-indigo-500'}`}
+                                                            >
+                                                                ▼
+                                                            </button>
+                                                        </div>
                                                         <span className="w-6 h-6 flex items-center justify-center bg-white rounded-lg text-xs font-bold text-gray-400 shadow-sm">{idx + 1}</span>
                                                         <input
                                                             type="text"
@@ -463,7 +506,10 @@ export default function HostPage() {
                                                             <button
                                                                 onClick={() => {
                                                                     const newOptions = currentQuestion.options?.filter((_, i) => i !== idx);
-                                                                    updateQuestion(activeQuestionIndex, { options: newOptions });
+                                                                    updateQuestion(activeQuestionIndex, {
+                                                                        options: newOptions,
+                                                                        correctOrder: newOptions?.map((_, i) => i)
+                                                                    });
                                                                 }}
                                                                 className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-400 transition-all font-bold"
                                                             >✕</button>
@@ -473,7 +519,10 @@ export default function HostPage() {
                                                 <button
                                                     onClick={() => {
                                                         const newOptions = [...(currentQuestion.options || []), ''];
-                                                        updateQuestion(activeQuestionIndex, { options: newOptions });
+                                                        updateQuestion(activeQuestionIndex, {
+                                                            options: newOptions,
+                                                            correctOrder: newOptions.map((_, i) => i)
+                                                        });
                                                     }}
                                                     className="w-full py-4 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 hover:border-indigo-400 hover:text-indigo-400 transition-all font-bold text-sm"
                                                 >

@@ -21,33 +21,31 @@ export default function JoinPage() {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswer, setSelectedAnswer] = useState<string | number | number[] | null>(null);
     const [hasAnswered, setHasAnswered] = useState(false);
+    const [showResults, setShowResults] = useState(false);
+    const [showBoard, setShowBoard] = useState(false);
+    const [resultData, setResultData] = useState<{ isCorrect: boolean; correctAnswer?: any; leaderboard: any[] } | null>(null);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [isTimeUp, setIsTimeUp] = useState(false);
-    const [isCountingDown, setIsCountingDown] = useState(false); // Added
-    const [countdownValue, setCountdownValue] = useState(7); // Added
-    const countdownTimerRef = useRef<NodeJS.Timeout | null>(null); // Added
+    const [isCountingDown, setIsCountingDown] = useState(false);
+    const [countdownValue, setCountdownValue] = useState(7);
+    const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
     const [error, setError] = useState('');
 
     const handleJoin = () => {
         if (!name.trim()) return;
 
-        // Generate random avatar
         const randomAvatar = getRandomAvatar();
         setAvatar(randomAvatar);
 
-        // Create peer with random ID
         const newPeer = new Peer();
 
         newPeer.on('open', (id) => {
             console.log('Participant peer ID:', id);
 
-            // Connect to host
             const conn = newPeer.connect(roomCode.toUpperCase());
 
             conn.on('open', () => {
                 console.log('Connected to host');
-
-                // Send join message with avatar
                 conn.send({
                     type: 'JOIN',
                     payload: {
@@ -55,13 +53,12 @@ export default function JoinPage() {
                         avatar: randomAvatar
                     }
                 });
-
                 setConnection(conn);
                 setStep('waiting');
             });
 
             conn.on('data', (data: any) => {
-                handleHostMessage(data);
+                hostMessageHandlerRef.current?.(data);
             });
 
             conn.on('close', () => {
@@ -88,7 +85,6 @@ export default function JoinPage() {
                 setQuiz(data.payload.quiz);
                 setCurrentQuestionIndex(data.payload.currentQuestionIndex);
                 setTimeLeft(data.payload.timeLeft);
-                // Only show quiz if it has started
                 if (data.payload.hasStarted) {
                     setStep('quiz');
                 }
@@ -105,7 +101,7 @@ export default function JoinPage() {
                 }
                 break;
 
-            case 'QUIZ_STARTING': // Added
+            case 'QUIZ_STARTING':
                 setIsCountingDown(true);
                 setCountdownValue(data.payload.countdown || 7);
                 break;
@@ -118,13 +114,44 @@ export default function JoinPage() {
                 setCurrentQuestionIndex(data.payload.questionIndex);
                 setTimeLeft(data.payload.timeLeft);
                 setHasAnswered(false);
+                setShowBoard(false);
+                setShowResults(false);
+                setResultData(null);
                 setSelectedAnswer(null);
                 setIsTimeUp(false);
                 break;
 
+            case 'SHOW_RESULTS':
+                if (quiz) {
+                    const currentQuestion = quiz.questions[currentQuestionIndex];
+                    let isCorrect = false;
+
+                    if (currentQuestion.type === 'multiple-choice') {
+                        isCorrect = selectedAnswer === currentQuestion.correctAnswer;
+                    } else if (currentQuestion.type === 'multiple-select') {
+                        const correct = currentQuestion.correctAnswers || [];
+                        const given = Array.isArray(selectedAnswer) ? selectedAnswer : [];
+                        isCorrect = correct.length === given.length && correct.every(v => given.includes(v));
+                    } else if (currentQuestion.type === 'ranking') {
+                        const correct = currentQuestion.correctOrder || [];
+                        const given = Array.isArray(selectedAnswer) ? selectedAnswer : [];
+                        isCorrect = correct.length === given.length && correct.every((val, idx) => val === given[idx]);
+                    }
+
+                    setResultData({
+                        isCorrect,
+                        correctAnswer: data.payload.correctAnswer,
+                        leaderboard: data.payload.leaderboard
+                    });
+
+                    setIsTimeUp(true);
+                    setShowResults(true);
+                    setTimeout(() => setShowBoard(true), 3000);
+                }
+                break;
+
             case 'SHOW_RANKING':
                 setStep('ranking');
-                // Celebration for participants too!
                 confetti({
                     particleCount: 150,
                     spread: 70,
@@ -139,6 +166,11 @@ export default function JoinPage() {
                 break;
         }
     };
+
+    const hostMessageHandlerRef = useRef<((data: any) => void) | null>(null);
+    useEffect(() => {
+        hostMessageHandlerRef.current = handleHostMessage;
+    }, [handleHostMessage]);
 
     const handleSubmitAnswer = () => {
         if (!connection || !quiz || selectedAnswer === null) return;
@@ -169,7 +201,6 @@ export default function JoinPage() {
         };
     }, [step, timeLeft, isTimeUp]);
 
-    // Countdown logic
     useEffect(() => {
         if (isCountingDown && countdownValue > 0) {
             countdownTimerRef.current = setTimeout(() => {
@@ -205,7 +236,6 @@ export default function JoinPage() {
         );
     }
 
-    // Name Entry Step
     if (step === 'name') {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-6">
@@ -255,7 +285,6 @@ export default function JoinPage() {
         );
     }
 
-    // Waiting Step
     if (step === 'waiting') {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-100 flex items-center justify-center p-6">
@@ -272,7 +301,6 @@ export default function JoinPage() {
                     </div>
                 </div>
 
-                {/* Countdown Overlay */}
                 {isCountingDown && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/20 backdrop-blur-xl transition-all duration-500 animate-in fade-in">
                         <div className="text-center">
@@ -289,7 +317,6 @@ export default function JoinPage() {
         );
     }
 
-    // Ranking Step
     if (step === 'ranking') {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-100 flex items-center justify-center p-6 text-center">
@@ -306,38 +333,13 @@ export default function JoinPage() {
         );
     }
 
-    // Quiz Step
     if (step === 'quiz' && quiz) {
         const currentQuestion = quiz.questions[currentQuestionIndex];
 
-        if (hasAnswered && !isTimeUp) {
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-100 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-700">
-                    <div className="space-y-12 max-w-md">
-                        <div className="relative inline-block">
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl animate-pulse"></div>
-                            </div>
-                        </div>
-                        <div className="space-y-4">
-                            <h2 className="text-3xl font-semibold text-gray-900 leading-tight">Great job!</h2>
-                            <p className="text-xl text-gray-600 font-light px-4">
-                                Your answer has been submitted. Please wait for the presenter to move to the next slide.
-                            </p>
-                        </div>
-                        <div className="flex gap-2 justify-center pt-8">
-                            <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-                            <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                            <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-100 flex items-center justify-center p-6">
-                <div className="max-w-2xl w-full">
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-blue-100 flex items-center justify-center p-6 relative overflow-hidden">
+                {/* Base Quiz Layer - Always visible */}
+                <div className={`max-w-2xl w-full transition-all duration-700 ${showResults || (hasAnswered && !isTimeUp) ? 'blur-sm scale-[0.98] opacity-50' : ''}`}>
                     {/* Progress */}
                     <div className="text-center mb-8">
                         <p className="text-sm text-gray-500 font-light mb-3">
@@ -376,6 +378,18 @@ export default function JoinPage() {
                                         ? (Array.isArray(selectedAnswer) && selectedAnswer.includes(idx))
                                         : selectedAnswer === idx;
 
+                                    const isCorrect = currentQuestion.type === 'multiple-select'
+                                        ? currentQuestion.correctAnswers?.includes(idx)
+                                        : currentQuestion.correctAnswer === idx;
+
+                                    let bgClass = 'bg-gray-50 text-gray-900 border-gray-100 hover:bg-gray-100';
+                                    if (isSelected && !isTimeUp) bgClass = 'bg-indigo-500 text-white border-indigo-500 shadow-md scale-[1.02]';
+                                    if (isTimeUp) {
+                                        if (isCorrect) bgClass = 'bg-green-500 text-white border-green-500 shadow-md';
+                                        else if (isSelected) bgClass = 'bg-red-500 text-white border-red-500 opacity-60';
+                                        else bgClass = 'bg-gray-50 text-gray-300 border-gray-100 opacity-40';
+                                    }
+
                                     return (
                                         <button
                                             key={idx}
@@ -395,13 +409,14 @@ export default function JoinPage() {
                                                 }
                                             }}
                                             disabled={hasAnswered || isTimeUp}
-                                            className={`w-full p-5 rounded-2xl font-medium text-left transition-all border flex items-center justify-between ${isSelected
-                                                ? 'bg-indigo-500 text-white border-indigo-500 shadow-md scale-[1.02]'
-                                                : 'bg-gray-50 text-gray-900 border-gray-100 hover:bg-gray-100'
-                                                } ${hasAnswered || isTimeUp ? 'cursor-not-allowed opacity-60' : ''}`}
+                                            className={`w-full p-5 rounded-2xl font-medium text-left transition-all border flex items-center justify-between ${bgClass} ${hasAnswered && !isTimeUp ? 'cursor-not-allowed opacity-60' : ''}`}
                                         >
-                                            <span>{option}</span>
-                                            {currentQuestion.type === 'multiple-select' && (
+                                            <div className="flex items-center gap-3">
+                                                <span>{option}</span>
+                                                {isTimeUp && isCorrect && <span className="text-xl">✅</span>}
+                                                {isTimeUp && isSelected && !isCorrect && <span className="text-xl">❌</span>}
+                                            </div>
+                                            {currentQuestion.type === 'multiple-select' && !isTimeUp && (
                                                 <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${isSelected
                                                     ? 'bg-white/20 border-white text-white'
                                                     : 'bg-white border-gray-300 text-transparent'
@@ -519,6 +534,171 @@ export default function JoinPage() {
                         </div>
                     )}
                 </div>
+
+                {/* Overlays */}
+                {showResults && resultData && (
+                    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500 backdrop-blur-xl bg-slate-900/10">
+                        <div className={`rounded-[3rem] p-12 shadow-2xl border max-w-2xl w-full flex flex-col items-center justify-center min-h-[600px] overflow-hidden relative transition-all duration-500 ${['multiple-choice', 'multiple-select', 'ranking'].includes(currentQuestion.type) ? (resultData.isCorrect ? 'bg-green-50/95 border-green-200' : 'bg-red-50/95 border-red-200') : 'bg-white/95 border-gray-200'}`}>
+
+                            {/* Prominent Status Banner - Only for Objective Questions */}
+                            {['multiple-choice', 'multiple-select', 'ranking'].includes(currentQuestion.type) ? (
+                                <div className={`absolute top-0 left-0 right-0 py-4 px-12 flex items-center justify-center gap-4 animate-in slide-in-from-top duration-700 ${resultData.isCorrect ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                                    <span className="text-2xl">{resultData.isCorrect ? '✨' : '💫'}</span>
+                                    <span className="text-xl font-black uppercase tracking-widest">
+                                        {resultData.isCorrect ? 'Great Job!' : 'Nice Try!'}
+                                    </span>
+                                    <span className="text-2xl">{resultData.isCorrect ? '✨' : '💫'}</span>
+                                </div>
+                            ) : (
+                                <div className="absolute top-0 left-0 right-0 py-4 px-12 flex items-center justify-center gap-4 bg-indigo-500 text-white animate-in slide-in-from-top duration-700">
+                                    <span className="text-2xl">📝</span>
+                                    <span className="text-xl font-black uppercase tracking-widest">Response Recorded!</span>
+                                    <span className="text-2xl">📝</span>
+                                </div>
+                            )}
+
+                            {/* Question and Answer section - Matches host's layout */}
+                            <div className={`text-center transition-all duration-1000 ease-in-out ${showBoard ? 'mb-12 scale-75 -translate-y-12' : 'mb-0 scale-100 mt-12'}`}>
+                                <div className="mb-6 flex flex-col items-center">
+                                    {['multiple-choice', 'multiple-select', 'ranking'].includes(currentQuestion.type) ? (
+                                        <>
+                                            <div className="text-7xl mb-4 animate-bounce">
+                                                {resultData.isCorrect ? '🤩' : '🥺'}
+                                            </div>
+                                            <h2 className={`text-sm font-bold uppercase tracking-[0.2em] mb-4 ${resultData.isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                                                {resultData.isCorrect ? 'Correct Answer' : 'Incorrect'}
+                                            </h2>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="text-7xl mb-4 animate-bounce">✨</div>
+                                            <h2 className="text-sm font-bold text-indigo-400 uppercase tracking-[0.2em] mb-4">Question Results</h2>
+                                        </>
+                                    )}
+                                </div>
+
+                                <h1 className="text-3xl font-semibold text-gray-900 leading-tight mb-4">
+                                    {currentQuestion.question}
+                                </h1>
+
+                                {resultData.isCorrect && (
+                                    <div className="mb-8 animate-in zoom-in duration-500 delay-300 fill-mode-both">
+                                        <div className="inline-flex items-center gap-2 px-6 py-2 bg-yellow-400 text-yellow-900 rounded-full font-black text-lg shadow-lg border-2 border-white">
+                                            <span>+</span>
+                                            <span>{resultData.leaderboard?.find(p => p.id === peer?.id)?.pointsEarned || 0}</span>
+                                            <span className="text-sm uppercase tracking-tighter opacity-70">points</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {(['multiple-choice', 'multiple-select'].includes(currentQuestion.type)) && (
+                                    <div className={`inline-block px-10 py-5 rounded-[2.5rem] shadow-sm border-2 ${resultData.isCorrect ? 'bg-green-100 border-green-200' : 'bg-white border-gray-100'}`}>
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest block mb-2">Answer Key</span>
+                                        <span className={`text-2xl font-black ${resultData.isCorrect ? 'text-green-700' : 'text-indigo-600'}`}>
+                                            {currentQuestion.type === 'multiple-choice'
+                                                ? currentQuestion.options?.[currentQuestion.correctAnswer!]
+                                                : currentQuestion.correctAnswers?.map(idx => currentQuestion.options?.[idx]).join(', ')
+                                            }
+                                        </span>
+                                    </div>
+                                )}
+
+                                {currentQuestion.type === 'ranking' && (
+                                    <div className="inline-block px-10 py-5 rounded-[2.5rem] shadow-sm border-2 bg-indigo-50 border-indigo-100">
+                                        <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest block mb-2">Correct Order</span>
+                                        <div className="space-y-1">
+                                            {currentQuestion.correctOrder?.map((idx, i) => (
+                                                <div key={idx} className="text-lg font-bold text-indigo-700">
+                                                    {i + 1}. {currentQuestion.options?.[idx]}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Standings section - Only for Objective Questions */}
+                            {['multiple-choice', 'multiple-select', 'ranking'].includes(currentQuestion.type) && (
+                                <div className={`w-full space-y-4 transition-all duration-1000 ease-out ${showBoard ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-20 h-0 pointer-events-none'}`}>
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 px-2 text-center">Current Standings</h3>
+                                    <div className="relative overflow-y-auto custom-scrollbar pr-2" style={{ maxHeight: '300px' }}>
+                                        <div className="space-y-4 pb-4">
+                                            {resultData.leaderboard?.map((participant, index) => (
+                                                <div
+                                                    key={participant.id}
+                                                    className="transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                                                >
+                                                    <div className={`rounded-2xl p-4 flex items-center justify-between border shadow-sm mx-2 ${participant.name === name
+                                                        ? 'bg-indigo-50/50 border-indigo-200'
+                                                        : 'bg-gray-50 border-gray-100'}`}
+                                                    >
+                                                        <div className="flex items-center gap-4">
+                                                            <span className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold text-sm ${index === 0 ? 'bg-yellow-400 text-yellow-900' :
+                                                                index === 1 ? 'bg-slate-300 text-slate-700' :
+                                                                    index === 2 ? 'bg-orange-300 text-orange-800' :
+                                                                        'bg-gray-200 text-gray-500'
+                                                                }`}>
+                                                                {index + 1}
+                                                            </span>
+                                                            <span className="text-3xl">{participant.avatar}</span>
+                                                            <span className="font-semibold text-gray-800">
+                                                                {participant.name} {participant.name === name && '(You)'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="text-right">
+                                                                <div className="text-lg font-black text-indigo-600 tabular-nums">{participant.score}</div>
+                                                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Points</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Footer status */}
+                            <div className="mt-8 pt-6 border-t border-gray-100 w-full flex flex-col items-center gap-4">
+                                <div className="flex gap-2">
+                                    <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-pulse" style={{ animationDelay: '0s' }}></div>
+                                    <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                                    <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                                </div>
+                                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">
+                                    {['multiple-choice', 'multiple-select', 'ranking'].includes(currentQuestion.type)
+                                        ? (resultData.isCorrect ? 'Spot on! Waiting for the presenter...' : 'Almost there! Waiting for the presenter...')
+                                        : 'Wonderful! Waiting for the presenter...'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Submitting Feedback Overlay */}
+                {hasAnswered && !isTimeUp && !showResults && (
+                    <div className="fixed inset-0 z-40 bg-white/30 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-700">
+                        <div className="space-y-12 max-w-md">
+                            <div className="relative inline-block">
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl animate-pulse"></div>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <h2 className="text-3xl font-semibold text-gray-900 leading-tight">Great job!</h2>
+                                <p className="text-xl text-gray-600 font-light px-4">
+                                    Your answer has been submitted. Please wait for the presenter to move to the next slide.
+                                </p>
+                            </div>
+                            <div className="flex gap-2 justify-center pt-8">
+                                <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                                <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                <div className="w-2.5 h-2.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
